@@ -41,6 +41,7 @@ const formSchema = z
       .optional()
       .or(z.literal("")),
     confirm_password: z.string().optional(),
+    pro_user: z.boolean().optional(),
     is_superuser: z.boolean().optional(),
     is_active: z.boolean().optional(),
   })
@@ -52,7 +53,7 @@ const formSchema = z
 type FormData = z.infer<typeof formSchema>
 
 interface EditUserProps {
-  user: UserPublic
+  user: UserPublic & { pro_user?: boolean | null }
   onSuccess: () => void
 }
 
@@ -68,6 +69,7 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
     defaultValues: {
       email: user.email,
       full_name: user.full_name ?? undefined,
+      pro_user: user.pro_user ?? false,
       is_superuser: user.is_superuser,
       is_active: user.is_active,
     },
@@ -182,6 +184,22 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pro_user"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="font-normal">Is pro user?</FormLabel>
                   </FormItem>
                 )}
               />

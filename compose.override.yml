@@ -103,6 +103,28 @@ services:
       args:
         - VITE_API_URL=http://localhost:8000
         - NODE_ENV=development
+    develop:
+      watch:
+        - path: ./frontend/src
+          action: rebuild
+        - path: ./frontend/public
+          action: rebuild
+        - path: ./frontend/index.html
+          action: rebuild
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./frontend/bun.lock
+          action: rebuild
+        - path: ./frontend/vite.config.ts
+          action: rebuild
+        - path: ./frontend/openapi-ts.config.ts
+          action: rebuild
+        - path: ./frontend/nginx.conf
+          action: rebuild
+        - path: ./frontend/nginx-backend-not-found.conf
+          action: rebuild
+        - path: ./frontend/Dockerfile
+          action: rebuild
 
   playwright:
     build:

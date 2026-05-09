@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Item, ItemTag, Tag, TagCreate, TagPublic
+from app.models import Item, ItemTag, Tag, TagCreate, TagPublic, TagBase
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -90,3 +90,48 @@ def remove_tag_from_item(
     session.delete(item_tag)
     session.commit()
     return {"message": "Tag removed from item successfully"}
+
+
+@router.put("/{tag_id}", response_model=TagPublic)
+def update_tag(
+    tag_id: uuid.UUID,
+    tag_in: TagBase,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> TagPublic:
+    """Update a tag. Superuser only."""
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    tag = session.get(Tag, tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    existing = session.exec(select(Tag).where(Tag.name == tag_in.name, Tag.id != tag_id)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Tag name already exists")
+
+    tag.name = tag_in.name
+    session.add(tag)
+    session.commit()
+    session.refresh(tag)
+    return tag
+
+
+@router.delete("/{tag_id}")
+def delete_tag(
+    tag_id: uuid.UUID,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> dict:
+    """Delete a tag. Superuser only."""
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    tag = session.get(Tag, tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    session.delete(tag)
+    session.commit()
+    return {"message": "Tag deleted successfully"}

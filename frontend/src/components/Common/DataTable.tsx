@@ -32,18 +32,37 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  showPagination?: boolean
+  totalCount?: number
+  currentPage?: number
+  pageSize?: number
+  onPageChange?: (page: number) => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  showPagination = false,
+  totalCount = 0,
+  currentPage = 0,
+  pageSize = 10,
+  onPageChange,
 }: DataTableProps<TData, TValue>) {
+  
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
+
+  const handlePageChange = (page: number) => {
+    if (onPageChange) {
+      onPageChange(page)
+    }
+  }
+
+  const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,7 +109,61 @@ export function DataTable<TData, TValue>({
         </TableBody>
       </Table>
 
-      {table.getPageCount() > 1 && (
+      {showPagination && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-t bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {currentPage * pageSize + 1} to{" "}
+              {Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount}{" "}
+              results
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(0)}
+              disabled={currentPage === 0}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} of {totalPages}
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(totalPages - 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!showPagination && table.getPageCount() > 1 && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-t bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="text-sm text-muted-foreground">
