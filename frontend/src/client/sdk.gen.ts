@@ -3,9 +3,35 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { ItemsSearchItemsData, ItemsSearchItemsResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, ReviewsGetReviewsByItemData, ReviewsGetReviewsByItemResponse, ReviewsCreateReviewData, ReviewsCreateReviewResponse, ReviewsReadReviewsData, ReviewsReadReviewsResponse, ReviewsUpdateReviewData, ReviewsUpdateReviewResponse, ReviewsDeleteReviewData, ReviewsDeleteReviewResponse, TagsGetAllTagsResponse, TagsCreateTagData, TagsCreateTagResponse, TagsAddTagToItemData, TagsAddTagToItemResponse, TagsRemoveTagFromItemData, TagsRemoveTagFromItemResponse, TagsUpdateTagData, TagsUpdateTagResponse, TagsDeleteTagData, TagsDeleteTagResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
 
 export class ItemsService {
+    /**
+     * Search Items
+     * Search items by keyword in title, brand, or description (case-insensitive).
+     * Supports fuzzy matching: 'Maybeline' and 'maybeline New York' return same results.
+     * @param data The data for the request.
+     * @param data.keyword
+     * @param data.skip
+     * @param data.limit
+     * @returns ItemsPublic Successful Response
+     * @throws ApiError
+     */
+    public static searchItems(data: ItemsSearchItemsData): CancelablePromise<ItemsSearchItemsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/items/search',
+            query: {
+                keyword: data.keyword,
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
     /**
      * Read Items
      * Retrieve items.
@@ -228,6 +254,253 @@ export class PrivateService {
             url: '/api/v1/private/users/',
             body: data.requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class ReviewsService {
+    /**
+     * Get Reviews By Item
+     * Get all reviews for a specific item.
+     * @param data The data for the request.
+     * @param data.itemId
+     * @param data.skip
+     * @param data.limit
+     * @returns ReviewsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getReviewsByItem(data: ReviewsGetReviewsByItemData): CancelablePromise<ReviewsGetReviewsByItemResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/reviews/item/{item_id}',
+            path: {
+                item_id: data.itemId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Review
+     * Create a new review for an item.
+     * @param data The data for the request.
+     * @param data.itemId
+     * @param data.requestBody
+     * @returns ReviewPublic Successful Response
+     * @throws ApiError
+     */
+    public static createReview(data: ReviewsCreateReviewData): CancelablePromise<ReviewsCreateReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/reviews/item/{item_id}',
+            path: {
+                item_id: data.itemId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Read Reviews
+     * Get all reviews (superuser) or own reviews (regular user).
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns ReviewsPublic Successful Response
+     * @throws ApiError
+     */
+    public static readReviews(data: ReviewsReadReviewsData = {}): CancelablePromise<ReviewsReadReviewsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/reviews/',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Review
+     * Update a review.
+     * @param data The data for the request.
+     * @param data.reviewId
+     * @param data.requestBody
+     * @returns ReviewPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateReview(data: ReviewsUpdateReviewData): CancelablePromise<ReviewsUpdateReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/reviews/{review_id}',
+            path: {
+                review_id: data.reviewId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Review
+     * Delete a review.
+     * @param data The data for the request.
+     * @param data.reviewId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static deleteReview(data: ReviewsDeleteReviewData): CancelablePromise<ReviewsDeleteReviewResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/reviews/{review_id}',
+            path: {
+                review_id: data.reviewId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
+
+export class TagsService {
+    /**
+     * Get All Tags
+     * Get all available tags.
+     * @returns TagPublic Successful Response
+     * @throws ApiError
+     */
+    public static getAllTags(): CancelablePromise<TagsGetAllTagsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/tags/'
+        });
+    }
+    
+    /**
+     * Create Tag
+     * Create a new tag. Superuser only.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns TagPublic Successful Response
+     * @throws ApiError
+     */
+    public static createTag(data: TagsCreateTagData): CancelablePromise<TagsCreateTagResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tags/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Add Tag To Item
+     * Add a tag to an item.
+     * @param data The data for the request.
+     * @param data.itemId
+     * @param data.tagId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static addTagToItem(data: TagsAddTagToItemData): CancelablePromise<TagsAddTagToItemResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/tags/item/{item_id}/{tag_id}',
+            path: {
+                item_id: data.itemId,
+                tag_id: data.tagId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Remove Tag From Item
+     * Remove a tag from an item.
+     * @param data The data for the request.
+     * @param data.itemId
+     * @param data.tagId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static removeTagFromItem(data: TagsRemoveTagFromItemData): CancelablePromise<TagsRemoveTagFromItemResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/tags/item/{item_id}/{tag_id}',
+            path: {
+                item_id: data.itemId,
+                tag_id: data.tagId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Tag
+     * Update a tag. Superuser only.
+     * @param data The data for the request.
+     * @param data.tagId
+     * @param data.requestBody
+     * @returns TagPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateTag(data: TagsUpdateTagData): CancelablePromise<TagsUpdateTagResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/tags/{tag_id}',
+            path: {
+                tag_id: data.tagId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Tag
+     * Delete a tag. Superuser only.
+     * @param data The data for the request.
+     * @param data.tagId
+     * @returns unknown Successful Response
+     * @throws ApiError
+     */
+    public static deleteTag(data: TagsDeleteTagData): CancelablePromise<TagsDeleteTagResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/tags/{tag_id}',
+            path: {
+                tag_id: data.tagId
+            },
             errors: {
                 422: 'Validation Error'
             }

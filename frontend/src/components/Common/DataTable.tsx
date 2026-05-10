@@ -48,7 +48,6 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   onPageChange,
 }: DataTableProps<TData, TValue>) {
-  
   const table = useReactTable({
     data,
     columns,
@@ -114,8 +113,8 @@ export function DataTable<TData, TValue>({
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="text-sm text-muted-foreground">
               Showing {currentPage * pageSize + 1} to{" "}
-              {Math.min((currentPage + 1) * pageSize, totalCount)} of {totalCount}{" "}
-              results
+              {Math.min((currentPage + 1) * pageSize, totalCount)} of{" "}
+              {totalCount} results
             </div>
           </div>
 
