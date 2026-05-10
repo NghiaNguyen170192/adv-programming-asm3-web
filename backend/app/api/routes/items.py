@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import col, func, select
+from sqlmodel import col, func, or_, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message, User
@@ -18,6 +18,40 @@ def _build_item_public(session: SessionDep, item: Item) -> ItemPublic:
     return item_public
 
 
+@router.get("/search", response_model=ItemsPublic)
+def search_items(
+    keyword: str,
+    session: SessionDep,
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Search items by keyword in title, brand, or description (case-insensitive).
+    Supports fuzzy matching: 'Maybeline' and 'maybeline New York' return same results.
+    """
+    keyword = keyword.lower().strip()
+
+    filters = or_(
+        func.lower(Item.title).contains(keyword),
+        func.lower(Item.brand).contains(keyword),
+        func.lower(Item.description).contains(keyword),
+    )
+
+    count_statement = select(func.count()).select_from(Item).where(filters)
+    count = session.exec(count_statement).one()
+
+    statement = (
+        select(Item)
+        .where(filters)
+        .order_by(col(Item.created_at).desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    items = session.exec(statement).all()
+    items_public = [_build_item_public(session, item) for item in items]
+    return ItemsPublic(data=items_public, count=count)
+
+
 @router.get("/", response_model=ItemsPublic)
 def read_items(
     session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
@@ -25,7 +59,6 @@ def read_items(
     """
     Retrieve items.
     """
-
     if current_user.is_superuser:
         count_statement = select(func.count()).select_from(Item)
         count = session.exec(count_statement).one()
