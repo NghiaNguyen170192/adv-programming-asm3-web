@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { UserActionsMenu } from "./UserActionsMenu"
 
 export type UserTableData = UserPublic & {
+  pro_user?: boolean | null
   isCurrentUser: boolean
 }
 
@@ -36,6 +37,15 @@ export const columns: ColumnDef<UserTableData>[] = [
     header: "Email",
     cell: ({ row }) => (
       <span className="text-muted-foreground">{row.original.email}</span>
+    ),
+  },
+  {
+    accessorKey: "pro_user",
+    header: "Pro",
+    cell: ({ row }) => (
+      <Badge variant={row.original.pro_user ? "default" : "secondary"}>
+        {row.original.pro_user ? "Pro" : "Standard"}
+      </Badge>
     ),
   },
   {

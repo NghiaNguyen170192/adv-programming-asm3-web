@@ -2,12 +2,54 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import col, func, select
+from sqlmodel import col, func, or_, select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message
+from app.models import Item, ItemCreate, ItemPublic, ItemsPublic, ItemUpdate, Message, User
 
 router = APIRouter(prefix="/items", tags=["items"])
+
+
+def _build_item_public(session: SessionDep, item: Item) -> ItemPublic:
+    owner = session.get(User, item.owner_id)
+    owner_name = (owner.full_name or owner.email) if owner else None
+    item_public = ItemPublic.model_validate(item)
+    item_public.owner_name = owner_name
+    return item_public
+
+
+@router.get("/search", response_model=ItemsPublic)
+def search_items(
+    keyword: str,
+    session: SessionDep,
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Search items by keyword in title, brand, or description (case-insensitive).
+    Supports fuzzy matching: 'Maybeline' and 'maybeline New York' return same results.
+    """
+    keyword = keyword.lower().strip()
+
+    filters = or_(
+        func.lower(Item.title).contains(keyword),
+        func.lower(Item.brand).contains(keyword),
+        func.lower(Item.description).contains(keyword),
+    )
+
+    count_statement = select(func.count()).select_from(Item).where(filters)
+    count = session.exec(count_statement).one()
+
+    statement = (
+        select(Item)
+        .where(filters)
+        .order_by(col(Item.created_at).desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    items = session.exec(statement).all()
+    items_public = [_build_item_public(session, item) for item in items]
+    return ItemsPublic(data=items_public, count=count)
 
 
 @router.get("/", response_model=ItemsPublic)
@@ -17,7 +59,6 @@ def read_items(
     """
     Retrieve items.
     """
-
     if current_user.is_superuser:
         count_statement = select(func.count()).select_from(Item)
         count = session.exec(count_statement).one()
@@ -41,7 +82,7 @@ def read_items(
         )
         items = session.exec(statement).all()
 
-    items_public = [ItemPublic.model_validate(item) for item in items]
+    items_public = [_build_item_public(session, item) for item in items]
     return ItemsPublic(data=items_public, count=count)
 
 
@@ -55,7 +96,7 @@ def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> 
         raise HTTPException(status_code=404, detail="Item not found")
     if not current_user.is_superuser and (item.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    return item
+    return _build_item_public(session, item)
 
 
 @router.post("/", response_model=ItemPublic)
@@ -69,7 +110,7 @@ def create_item(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return item
+    return _build_item_public(session, item)
 
 
 @router.put("/{id}", response_model=ItemPublic)
@@ -93,7 +134,7 @@ def update_item(
     session.add(item)
     session.commit()
     session.refresh(item)
-    return item
+    return _build_item_public(session, item)
 
 
 @router.delete("/{id}")

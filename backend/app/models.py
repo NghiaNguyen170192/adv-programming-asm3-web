@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from pydantic import EmailStr
 from sqlalchemy import DateTime
@@ -16,6 +17,7 @@ class UserBase(SQLModel):
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
+    pro_user: Optional[bool] = None
 
 
 # Properties to receive via API on creation
@@ -45,21 +47,22 @@ class UpdatePassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-# Database model, database table inferred from class name
+# Database model
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    created_at: datetime | None = Field(
+    created_at: Optional[datetime] = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
+    reviews: list["Review"] = Relationship(back_populates="owner", cascade_delete=True)
 
 
-# Properties to return via API, id is always required
+# Properties to return via API
 class UserPublic(UserBase):
     id: uuid.UUID
-    created_at: datetime | None = None
+    created_at: Optional[datetime] = None
 
 
 class UsersPublic(SQLModel):
@@ -70,41 +73,145 @@ class UsersPublic(SQLModel):
 # Shared properties
 class ItemBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    product_id: Optional[int] = Field(default=None, ge=0, unique=True, index=True)
+    price: Optional[float] = Field(default=None, ge=0)
+    mrp: Optional[float] = Field(default=None, ge=0)
+    brand: Optional[str] = Field(default=None, max_length=255)
+    product_url: Optional[str] = Field(default=None, max_length=1000)
+    image_url: Optional[str] = Field(default=None, max_length=500)
 
 
-# Properties to receive on item creation
 class ItemCreate(ItemBase):
     pass
 
 
-# Properties to receive on item update
 class ItemUpdate(ItemBase):
-    title: str | None = Field(default=None, min_length=1, max_length=255)  # type: ignore[assignment]
+    title: Optional[str] = Field(default=None, min_length=1, max_length=255)  # type: ignore[assignment]
 
 
-# Database model, database table inferred from class name
+# ─── Tag base (defined before ItemTag and Item) ───────────────────────────────
+
+
+class TagBase(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class TagCreate(TagBase):
+    pass
+
+
+class TagPublic(TagBase):
+    id: uuid.UUID
+
+
+# ─── ItemTag (junction table, must be defined before Item and Tag) ────────────
+
+
+class ItemTag(SQLModel, table=True):
+    item_id: uuid.UUID = Field(
+        foreign_key="item.id", primary_key=True, ondelete="CASCADE"
+    )
+    tag_id: uuid.UUID = Field(
+        foreign_key="tag.id", primary_key=True, ondelete="CASCADE"
+    )
+
+
+# ─── Tag database model ───────────────────────────────────────────────────────
+
+
+class Tag(TagBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    items: list["Item"] = Relationship(back_populates="tags", link_model=ItemTag)
+
+
+# ─── Item database model ──────────────────────────────────────────────────────
+
+
 class Item(ItemBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime | None = Field(
+    product_rating: Optional[float] = Field(default=None, ge=0, le=5)
+    product_rating_count: Optional[int] = Field(default=0, ge=0)
+    created_at: Optional[datetime] = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
     )
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
     )
-    owner: User | None = Relationship(back_populates="items")
+    owner: Optional[User] = Relationship(back_populates="items")
+    reviews: list["Review"] = Relationship(back_populates="item", cascade_delete=True)
+    tags: list[Tag] = Relationship(back_populates="items", link_model=ItemTag)
 
 
-# Properties to return via API, id is always required
 class ItemPublic(ItemBase):
     id: uuid.UUID
+    product_rating: Optional[float] = None
+    product_rating_count: Optional[int] = 0
     owner_id: uuid.UUID
-    created_at: datetime | None = None
+    owner_name: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class ItemsPublic(SQLModel):
     data: list[ItemPublic]
+    count: int
+
+
+# ─── Review ──────────────────────────────────────────────────────────────────
+
+
+class ReviewBase(SQLModel):
+    title: str = Field(min_length=1, max_length=255)
+    description: str = Field(min_length=1, max_length=2000)
+    rating: int = Field(ge=1, le=5)
+    review_id: Optional[uuid.UUID] = Field(default=None, unique=True, index=True)
+    review_date: Optional[datetime] = Field(
+        default=None, sa_type=DateTime(timezone=True)
+    )
+    is_a_buyer: Optional[bool] = None
+    review_label: Optional[str] = Field(default=None, max_length=100)
+
+
+class ReviewCreate(ReviewBase):
+    item_id: uuid.UUID
+
+
+class ReviewUpdate(SQLModel):
+    title: Optional[str] = Field(default=None, max_length=255)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
+
+
+class Review(ReviewBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    review_id: uuid.UUID = Field(default_factory=uuid.uuid4, unique=True, index=True)
+    created_at: Optional[datetime] = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    item_id: uuid.UUID = Field(
+        foreign_key="item.id", nullable=False, ondelete="CASCADE"
+    )
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+    )
+    item: Optional[Item] = Relationship(back_populates="reviews")
+    owner: Optional["User"] = Relationship(back_populates="reviews")
+
+
+class ReviewPublic(ReviewBase):
+    id: uuid.UUID
+    review_id: uuid.UUID
+    owner_id: uuid.UUID
+    owner_name: Optional[str] = None
+    item_id: uuid.UUID
+    item_title: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class ReviewsPublic(SQLModel):
+    data: list[ReviewPublic]
     count: int
 
 

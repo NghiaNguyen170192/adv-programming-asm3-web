@@ -44,6 +44,7 @@ const formSchema = z
       .min(1, { message: "Please confirm your password" }),
     is_superuser: z.boolean(),
     is_active: z.boolean(),
+    pro_user: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirm_password, {
     message: "The passwords don't match",
@@ -68,12 +69,13 @@ const AddUser = () => {
       confirm_password: "",
       is_superuser: false,
       is_active: false,
+      pro_user: false,
     },
   })
 
   const mutation = useMutation({
-    mutationFn: (data: UserCreate) =>
-      UsersService.createUser({ requestBody: data }),
+    mutationFn: (data: FormData) =>
+      UsersService.createUser({ requestBody: data as unknown as UserCreate }),
     onSuccess: () => {
       showSuccessToast("User created successfully")
       form.reset()
@@ -181,6 +183,22 @@ const AddUser = () => {
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pro_user"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="font-normal">Is pro user?</FormLabel>
                   </FormItem>
                 )}
               />
