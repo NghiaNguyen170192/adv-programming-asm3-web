@@ -16,13 +16,28 @@ export type HTTPValidationError = {
 export type ItemCreate = {
     title: string;
     description?: (string | null);
+    product_id?: (number | null);
+    price?: (number | null);
+    mrp?: (number | null);
+    brand?: (string | null);
+    product_url?: (string | null);
+    image_url?: (string | null);
 };
 
 export type ItemPublic = {
     title: string;
     description?: (string | null);
+    product_id?: (number | null);
+    price?: (number | null);
+    mrp?: (number | null);
+    brand?: (string | null);
+    product_url?: (string | null);
+    image_url?: (string | null);
     id: string;
+    product_rating?: (number | null);
+    product_rating_count?: (number | null);
     owner_id: string;
+    owner_name?: (string | null);
     created_at?: (string | null);
 };
 
@@ -34,6 +49,12 @@ export type ItemsPublic = {
 export type ItemUpdate = {
     title?: (string | null);
     description?: (string | null);
+    product_id?: (number | null);
+    price?: (number | null);
+    mrp?: (number | null);
+    brand?: (string | null);
+    product_url?: (string | null);
+    image_url?: (string | null);
 };
 
 export type Message = {
@@ -52,6 +73,57 @@ export type PrivateUserCreate = {
     is_verified?: boolean;
 };
 
+export type ReviewCreate = {
+    title: string;
+    description: string;
+    rating: number;
+    review_id?: (string | null);
+    review_date?: (string | null);
+    is_a_buyer?: (boolean | null);
+    review_label?: (string | null);
+    item_id: string;
+};
+
+export type ReviewPublic = {
+    title: string;
+    description: string;
+    rating: number;
+    review_id: string;
+    review_date?: (string | null);
+    is_a_buyer?: (boolean | null);
+    review_label?: (string | null);
+    id: string;
+    owner_id: string;
+    owner_name?: (string | null);
+    item_id: string;
+    item_title?: (string | null);
+    created_at?: (string | null);
+};
+
+export type ReviewsPublic = {
+    data: Array<ReviewPublic>;
+    count: number;
+};
+
+export type ReviewUpdate = {
+    title?: (string | null);
+    description?: (string | null);
+    rating?: (number | null);
+};
+
+export type TagBase = {
+    name: string;
+};
+
+export type TagCreate = {
+    name: string;
+};
+
+export type TagPublic = {
+    name: string;
+    id: string;
+};
+
 export type Token = {
     access_token: string;
     token_type?: string;
@@ -67,6 +139,7 @@ export type UserCreate = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    pro_user?: (boolean | null);
     password: string;
 };
 
@@ -75,6 +148,7 @@ export type UserPublic = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    pro_user?: (boolean | null);
     id: string;
     created_at?: (string | null);
 };
@@ -95,6 +169,7 @@ export type UserUpdate = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+    pro_user?: (boolean | null);
     password?: (string | null);
 };
 
@@ -112,6 +187,14 @@ export type ValidationError = {
         [key: string]: unknown;
     };
 };
+
+export type ItemsSearchItemsData = {
+    keyword: string;
+    limit?: number;
+    skip?: number;
+};
+
+export type ItemsSearchItemsResponse = (ItemsPublic);
 
 export type ItemsReadItemsData = {
     limit?: number;
@@ -176,6 +259,84 @@ export type PrivateCreateUserData = {
 };
 
 export type PrivateCreateUserResponse = (UserPublic);
+
+export type ReviewsGetReviewsByItemData = {
+    itemId: string;
+    limit?: number;
+    skip?: number;
+};
+
+export type ReviewsGetReviewsByItemResponse = (ReviewsPublic);
+
+export type ReviewsCreateReviewData = {
+    itemId: string;
+    requestBody: ReviewCreate;
+};
+
+export type ReviewsCreateReviewResponse = (ReviewPublic);
+
+export type ReviewsReadReviewsData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type ReviewsReadReviewsResponse = (ReviewsPublic);
+
+export type ReviewsUpdateReviewData = {
+    requestBody: ReviewUpdate;
+    reviewId: string;
+};
+
+export type ReviewsUpdateReviewResponse = (ReviewPublic);
+
+export type ReviewsDeleteReviewData = {
+    reviewId: string;
+};
+
+export type ReviewsDeleteReviewResponse = ({
+    [key: string]: unknown;
+});
+
+export type TagsGetAllTagsResponse = (Array<TagPublic>);
+
+export type TagsCreateTagData = {
+    requestBody: TagCreate;
+};
+
+export type TagsCreateTagResponse = (TagPublic);
+
+export type TagsAddTagToItemData = {
+    itemId: string;
+    tagId: string;
+};
+
+export type TagsAddTagToItemResponse = ({
+    [key: string]: unknown;
+});
+
+export type TagsRemoveTagFromItemData = {
+    itemId: string;
+    tagId: string;
+};
+
+export type TagsRemoveTagFromItemResponse = ({
+    [key: string]: unknown;
+});
+
+export type TagsUpdateTagData = {
+    requestBody: TagBase;
+    tagId: string;
+};
+
+export type TagsUpdateTagResponse = (TagPublic);
+
+export type TagsDeleteTagData = {
+    tagId: string;
+};
+
+export type TagsDeleteTagResponse = ({
+    [key: string]: unknown;
+});
 
 export type UsersReadUsersData = {
     limit?: number;
