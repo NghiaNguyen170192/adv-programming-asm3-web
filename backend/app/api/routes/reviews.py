@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUser, SessionDep
+from app.ml_service import predict as ml_predict
 from app.models import (
     Item,
     Review,
@@ -107,6 +108,16 @@ def create_review(
         raise HTTPException(status_code=404, detail="Item not found")
 
     review_data = review_in.model_dump(exclude_unset=True, exclude={"item_id"})
+
+    # Auto-predict is_a_buyer using ML ensemble if not explicitly provided
+    prediction = ml_predict(review_in.description)
+    review_data["predicted_is_a_buyer"] = prediction["predicted_is_buyer"]
+    review_data["prediction_confidence"] = prediction["confidence"]
+
+    # If user didn't explicitly set is_a_buyer, use the ML prediction
+    if review_data.get("is_a_buyer") is None:
+        review_data["is_a_buyer"] = prediction["predicted_is_buyer"]
+
     review = Review.model_validate(
         review_data,
         update={

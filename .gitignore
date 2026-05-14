@@ -5,3 +5,4 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+backend/app/ml_models/bow_rf_model.pkl

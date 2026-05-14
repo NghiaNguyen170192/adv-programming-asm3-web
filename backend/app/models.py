@@ -57,6 +57,7 @@ class User(UserBase, table=True):
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     reviews: list["Review"] = Relationship(back_populates="owner", cascade_delete=True)
+    cart_items: list["CartItem"] = Relationship(cascade_delete=True)
 
 
 # Properties to return via API
@@ -170,6 +171,8 @@ class ReviewBase(SQLModel):
         default=None, sa_type=DateTime(timezone=True)
     )
     is_a_buyer: Optional[bool] = None
+    predicted_is_a_buyer: Optional[bool] = None
+    prediction_confidence: Optional[float] = None
     review_label: Optional[str] = Field(default=None, max_length=100)
 
 
@@ -213,6 +216,34 @@ class ReviewPublic(ReviewBase):
 class ReviewsPublic(SQLModel):
     data: list[ReviewPublic]
     count: int
+
+
+# ─── Cart ─────────────────────────────────────────────────────────────────────
+
+class CartItem(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE", index=True)
+    item_id: uuid.UUID = Field(foreign_key="item.id", nullable=False, ondelete="CASCADE", index=True)
+    quantity: int = Field(default=1, ge=1)
+    added_at: Optional[datetime] = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),  # type: ignore
+    )
+
+class CartItemPublic(SQLModel):
+    id: uuid.UUID
+    item_id: uuid.UUID
+    quantity: int
+    added_at: Optional[datetime] = None
+    title: str
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    price: Optional[float] = None
+    mrp: Optional[float] = None
+
+class CartPublic(SQLModel):
+    items: list[CartItemPublic]
+    total: float
 
 
 # Generic message

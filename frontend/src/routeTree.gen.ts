@@ -16,10 +16,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutTagsRouteImport } from './routes/_layout/tags'
+import { Route as LayoutCartRouteImport } from './routes/_layout/cart'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutReviewsRouteImport } from './routes/_layout/reviews'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutSearchRouteImport } from './routes/_layout/search'
+import { Route as LayoutItemIdRouteImport } from './routes/_layout/item.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -55,6 +58,11 @@ const LayoutTagsRoute = LayoutTagsRouteImport.update({
   path: '/tags',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutCartRoute = LayoutCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -75,6 +83,16 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutSearchRoute = LayoutSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutItemIdRoute = LayoutItemIdRouteImport.update({
+  id: '/item/$id',
+  path: '/item/$id',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -87,6 +105,9 @@ export interface FileRoutesByFullPath {
   '/reviews': typeof LayoutReviewsRoute
   '/settings': typeof LayoutSettingsRoute
   '/tags': typeof LayoutTagsRoute
+  '/search': typeof LayoutSearchRoute
+  '/item/$id': typeof LayoutItemIdRoute
+  '/cart': typeof LayoutCartRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -98,6 +119,9 @@ export interface FileRoutesByTo {
   '/reviews': typeof LayoutReviewsRoute
   '/settings': typeof LayoutSettingsRoute
   '/tags': typeof LayoutTagsRoute
+  '/search': typeof LayoutSearchRoute
+  '/item/$id': typeof LayoutItemIdRoute
+  '/cart': typeof LayoutCartRoute
   '/': typeof LayoutIndexRoute
 }
 export interface FileRoutesById {
@@ -112,6 +136,9 @@ export interface FileRoutesById {
   '/_layout/reviews': typeof LayoutReviewsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/tags': typeof LayoutTagsRoute
+  '/_layout/search': typeof LayoutSearchRoute
+  '/_layout/item/$id': typeof LayoutItemIdRoute
+  '/_layout/cart': typeof LayoutCartRoute
   '/_layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
@@ -127,6 +154,9 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/settings'
     | '/tags'
+    | '/search'
+    | '/item/$id'
+    | '/cart'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -138,6 +168,9 @@ export interface FileRouteTypes {
     | '/reviews'
     | '/settings'
     | '/tags'
+    | '/search'
+    | '/item/$id'
+    | '/cart'
     | '/'
   id:
     | '__root__'
@@ -151,6 +184,9 @@ export interface FileRouteTypes {
     | '/_layout/reviews'
     | '/_layout/settings'
     | '/_layout/tags'
+    | '/_layout/search'
+    | '/_layout/item/$id'
+    | '/_layout/cart'
     | '/_layout/'
   fileRoutesById: FileRoutesById
 }
@@ -241,6 +277,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/search': {
+      id: '/_layout/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof LayoutSearchRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/item/$id': {
+      id: '/_layout/item/$id'
+      path: '/item/$id'
+      fullPath: '/item/$id'
+      preLoaderRoute: typeof LayoutItemIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/cart': {
+      id: '/_layout/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof LayoutCartRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -250,6 +307,9 @@ interface LayoutRouteChildren {
   LayoutReviewsRoute: typeof LayoutReviewsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutTagsRoute: typeof LayoutTagsRoute
+  LayoutSearchRoute: typeof LayoutSearchRoute
+  LayoutItemIdRoute: typeof LayoutItemIdRoute
+  LayoutCartRoute: typeof LayoutCartRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
@@ -259,6 +319,9 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutReviewsRoute: LayoutReviewsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutTagsRoute: LayoutTagsRoute,
+  LayoutSearchRoute: LayoutSearchRoute,
+  LayoutItemIdRoute: LayoutItemIdRoute,
+  LayoutCartRoute: LayoutCartRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import type { ColumnDef } from "@tanstack/react-table"
 import { EllipsisVertical, Pencil, Trash2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -44,6 +44,8 @@ type ReviewPublicRow = {
   rating: number
   review_date?: string | null
   is_a_buyer?: boolean | null
+  predicted_is_a_buyer?: boolean | null
+  prediction_confidence?: number | null
   review_label?: string | null
   owner_id: string
   owner_name?: string | null
@@ -52,13 +54,20 @@ type ReviewPublicRow = {
   created_at?: string | null
 }
 
+type PredictResponse = {
+  predicted_is_buyer: boolean
+  confidence: number
+  model_probabilities: {
+    bow_rf: number
+    bow_lr: number
+    ft_lr: number
+  }
+  fusion_method: string
+}
+
 type ReviewsPublicResponse = {
   data: ReviewPublicRow[]
   count: number
-}
-
-type ReviewsSearchParams = {
-  page?: number
 }
 
 const REVIEWS_PER_PAGE = 50
@@ -103,6 +112,21 @@ type CreateReviewPayload = {
   item_id: string
   is_a_buyer?: boolean
   review_label?: string
+}
+
+async function predictBuyer(
+  reviewText: string,
+): Promise<PredictResponse> {
+  const response = await fetch(
+    `${OpenAPI.BASE}/api/v1/predict/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ review_text: reviewText }),
+    },
+  )
+  if (!response.ok) throw new Error("Prediction failed")
+  return response.json()
 }
 
 async function createReview(
@@ -378,9 +402,6 @@ const columns: ColumnDef<ReviewPublicRow>[] = [
 
 export const Route = createFileRoute("/_layout/reviews")({
   component: Reviews,
-  validateSearch: (search: Record<string, unknown>): ReviewsSearchParams => ({
-    page: typeof search.page === "number" ? search.page : 0,
-  }),
   head: () => ({
     meta: [
       {
@@ -391,11 +412,8 @@ export const Route = createFileRoute("/_layout/reviews")({
 })
 
 function Reviews() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
-  const { page = 0 } = useSearch({ from: "/_layout/reviews" })
-  const skip = page * REVIEWS_PER_PAGE
 
   const { data: itemsResponse, isLoading: isItemsLoading } = useQuery({
     queryKey: ["items-for-reviews"],
@@ -415,8 +433,8 @@ function Reviews() {
   }, [items, createItemId])
 
   const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
-    queryKey: ["reviews", skip],
-    queryFn: () => readReviews(skip, REVIEWS_PER_PAGE),
+    queryKey: ["reviews"],
+    queryFn: () => readReviews(0, REVIEWS_PER_PAGE),
   })
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -424,7 +442,10 @@ function Reviews() {
   const [description, setDescription] = useState("")
   const [rating, setRating] = useState("5")
   const [reviewLabel, setReviewLabel] = useState("")
-  const [isBuyer, setIsBuyer] = useState(false)
+  const [isBuyer, setIsBuyer] = useState<boolean | null>(null)
+  const [prediction, setPrediction] = useState<PredictResponse | null>(null)
+  const [isPredicting, setIsPredicting] = useState(false)
+  const [userOverrode, setUserOverrode] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -434,7 +455,7 @@ function Reviews() {
         rating: Number(rating),
         item_id: createItemId,
         review_label: reviewLabel.trim() || undefined,
-        is_a_buyer: isBuyer,
+        is_a_buyer: isBuyer ?? undefined,
       }),
     onSuccess: () => {
       showSuccessToast("Review created successfully")
@@ -443,7 +464,9 @@ function Reviews() {
       setDescription("")
       setRating("5")
       setReviewLabel("")
-      setIsBuyer(false)
+      setIsBuyer(null)
+      setPrediction(null)
+      setUserOverrode(false)
       queryClient.invalidateQueries({ queryKey: ["reviews"] })
     },
     onError: (error) => {
@@ -525,13 +548,84 @@ function Reviews() {
                   placeholder="e.g. positive"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="review-buyer"
-                  checked={isBuyer}
-                  onCheckedChange={(checked) => setIsBuyer(Boolean(checked))}
-                />
-                <Label htmlFor="review-buyer">Is a buyer</Label>
+              {/* ML Prediction Section */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Buyer Prediction (AI)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!description.trim() || isPredicting}
+                    onClick={async () => {
+                      setIsPredicting(true)
+                      try {
+                        const result = await predictBuyer(description.trim())
+                        setPrediction(result)
+                        setIsBuyer(result.predicted_is_buyer)
+                        setUserOverrode(false)
+                      } catch {
+                        showErrorToast("Prediction failed")
+                      } finally {
+                        setIsPredicting(false)
+                      }
+                    }}
+                  >
+                    {isPredicting ? "Predicting..." : prediction ? "Re-predict" : "Predict"}
+                  </Button>
+                </div>
+
+                {prediction && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          prediction.predicted_is_buyer
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {prediction.predicted_is_buyer ? "Likely Buyer" : "Likely Non-Buyer"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Confidence: {(prediction.confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+
+                    <details className="text-xs text-muted-foreground">
+                      <summary className="cursor-pointer">Model details</summary>
+                      <div className="mt-1 space-y-0.5 pl-2">
+                        <div>BoW + Random Forest: {(prediction.model_probabilities.bow_rf * 100).toFixed(1)}%</div>
+                        <div>BoW + Logistic Regression: {(prediction.model_probabilities.bow_lr * 100).toFixed(1)}%</div>
+                        <div>FastText + Logistic Regression: {(prediction.model_probabilities.ft_lr * 100).toFixed(1)}%</div>
+                        <div className="italic">Fusion: soft voting (average)</div>
+                      </div>
+                    </details>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Checkbox
+                        id="review-buyer-override"
+                        checked={isBuyer ?? false}
+                        onCheckedChange={(checked) => {
+                          setIsBuyer(Boolean(checked))
+                          setUserOverrode(Boolean(checked) !== prediction.predicted_is_buyer)
+                        }}
+                      />
+                      <Label htmlFor="review-buyer-override" className="text-sm">
+                        Is a buyer
+                        {userOverrode && (
+                          <span className="ml-1 text-xs text-amber-600">(overridden)</span>
+                        )}
+                      </Label>
+                    </div>
+                  </div>
+                )}
+
+                {!prediction && (
+                  <p className="text-xs text-muted-foreground">
+                    Write a review description, then click Predict to get an AI-powered buyer prediction.
+                  </p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -562,13 +656,6 @@ function Reviews() {
         <DataTable
           columns={columns}
           data={reviewsResponse?.data ?? []}
-          showPagination
-          totalCount={reviewsResponse?.count ?? 0}
-          currentPage={page}
-          pageSize={REVIEWS_PER_PAGE}
-          onPageChange={(newPage) =>
-            navigate({ to: ".", search: { page: newPage } })
-          }
         />
       )}
     </div>

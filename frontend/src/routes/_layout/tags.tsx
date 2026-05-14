@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import type { ColumnDef } from "@tanstack/react-table"
-import { EllipsisVertical, Pencil, Trash2 } from "lucide-react"
+import { Tag, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { OpenAPI } from "@/client"
@@ -17,134 +17,63 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LoadingButton } from "@/components/ui/loading-button"
 import useCustomToast from "@/hooks/useCustomToast"
 
-type TagPublicRow = {
+type TagPublic = {
   id: string
   name: string
 }
 
-const columns: ColumnDef<TagPublicRow>[] = [
-  { accessorKey: "name", header: "Name" },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => <TagActionsCell row={row.original} />,
-  },
-]
+// ─── API helpers ──────────────────────────────────────────────────────────────
 
-export const Route = createFileRoute("/_layout/tags")({
-  component: Tags,
-  head: () => ({
-    meta: [
-      {
-        title: "Tags - FastAPI Template",
-      },
-    ],
-  }),
-})
-
-async function readTags(
-  skip: number = 0,
-  limit: number = 25,
-): Promise<TagPublicRow[]> {
-  const token = localStorage.getItem("access_token") || ""
-  const response = await fetch(
-    `${OpenAPI.BASE}/api/v1/tags/?skip=${skip}&limit=${limit}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error("Failed to load tags")
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
+    "Content-Type": "application/json",
   }
+}
 
+async function readTags(): Promise<TagPublic[]> {
+  const response = await fetch(`${OpenAPI.BASE}/api/v1/tags/`, {
+    headers: authHeaders(),
+  })
+  if (!response.ok) throw new Error("Failed to load tags")
   return response.json()
 }
 
-async function createTag(name: string): Promise<TagPublicRow> {
-  const token = localStorage.getItem("access_token") || ""
+async function createTag(name: string): Promise<TagPublic> {
   const response = await fetch(`${OpenAPI.BASE}/api/v1/tags/`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify({ name }),
   })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || "Failed to create tag")
-  }
-
+  if (!response.ok) throw new Error((await response.text()) || "Failed to create tag")
   return response.json()
 }
 
-async function updateTag(tagId: string, name: string): Promise<TagPublicRow> {
-  const token = localStorage.getItem("access_token") || ""
-  const response = await fetch(`${OpenAPI.BASE}/api/v1/tags/${tagId}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ name }),
-  })
-  if (!response.ok)
-    throw new Error((await response.text()) || "Failed to update tag")
-  return response.json()
-}
-
-async function deleteTag(tagId: string): Promise<void> {
-  const token = localStorage.getItem("access_token") || ""
-  const response = await fetch(`${OpenAPI.BASE}/api/v1/tags/${tagId}`, {
+async function deleteTag(id: string): Promise<void> {
+  const response = await fetch(`${OpenAPI.BASE}/api/v1/tags/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(),
   })
-  if (!response.ok)
-    throw new Error((await response.text()) || "Failed to delete tag")
+  if (!response.ok) throw new Error((await response.text()) || "Failed to delete tag")
 }
 
-// ─── Actions cell ─────────────────────────────────────────────────────────────
+// ─── Delete cell ─────────────────────────────────────────────────────────────
 
-function TagActionsCell({ row }: { row: TagPublicRow }) {
+function DeleteTagCell({ tag }: { tag: TagPublic }) {
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [editName, setEditName] = useState(row.name)
+  const [open, setOpen] = useState(false)
 
-  const editMutation = useMutation({
-    mutationFn: () => updateTag(row.id, editName.trim()),
-    onSuccess: () => {
-      showSuccessToast("Tag updated successfully")
-      setIsEditOpen(false)
-      setMenuOpen(false)
-      queryClient.invalidateQueries({ queryKey: ["tags"] })
-    },
-    onError: (e: Error) => showErrorToast(e.message || "Failed to update tag"),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteTag(row.id),
+  const mutation = useMutation({
+    mutationFn: () => deleteTag(tag.id),
     onSuccess: () => {
       showSuccessToast("Tag deleted successfully")
-      setIsDeleteOpen(false)
-      setMenuOpen(false)
+      setOpen(false)
       queryClient.invalidateQueries({ queryKey: ["tags"] })
     },
     onError: (e: Error) => showErrorToast(e.message || "Failed to delete tag"),
@@ -152,84 +81,29 @@ function TagActionsCell({ row }: { row: TagPublicRow }) {
 
   return (
     <div className="flex justify-end">
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <DropdownMenuTrigger asChild>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
           <Button variant="ghost" size="icon">
-            <EllipsisVertical className="size-4" />
+            <Trash2 className="size-4 text-destructive" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              setIsEditOpen(true)
-            }}
-          >
-            <Pencil className="size-4" /> Edit Tag
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={(e) => {
-              e.preventDefault()
-              setIsDeleteOpen(true)
-            }}
-          >
-            <Trash2 className="size-4" /> Delete Tag
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Edit dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Tag</DialogTitle>
-            <DialogDescription>Update the tag name.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2 py-2">
-            <Label htmlFor="edit-tag-name">Tag Name</Label>
-            <Input
-              id="edit-tag-name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" disabled={editMutation.isPending}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <LoadingButton
-              loading={editMutation.isPending}
-              onClick={() => editMutation.mutate()}
-              disabled={!editName.trim()}
-            >
-              Save
-            </LoadingButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Tag</DialogTitle>
             <DialogDescription>
-              This tag will be permanently deleted. Are you sure?
+              Tag <strong>"{tag.name}"</strong> will be permanently deleted. Are you sure?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
             <DialogClose asChild>
-              <Button variant="outline" disabled={deleteMutation.isPending}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Cancel
               </Button>
             </DialogClose>
             <LoadingButton
               variant="destructive"
-              loading={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate()}
+              loading={mutation.isPending}
+              onClick={() => mutation.mutate()}
             >
               Delete
             </LoadingButton>
@@ -240,72 +114,93 @@ function TagActionsCell({ row }: { row: TagPublicRow }) {
   )
 }
 
+// ─── Columns ─────────────────────────────────────────────────────────────────
+
+const columns: ColumnDef<TagPublic>[] = [
+  { accessorKey: "name", header: "Name" },
+  { accessorKey: "id", header: "ID" },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => <DeleteTagCell tag={row.original} />,
+  },
+]
+
+// ─── Route ───────────────────────────────────────────────────────────────────
+
+export const Route = createFileRoute("/_layout/tags")({
+  component: Tags,
+  head: () => ({
+    meta: [{ title: "Tags - FastAPI Template" }],
+  }),
+})
+
 function Tags() {
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
-  const [currentPage, setCurrentPage] = useState(0)
-  const pageSize = 25
+  const [isOpen, setIsOpen] = useState(false)
+  const [name, setName] = useState("")
+
   const { data: tags = [], isLoading } = useQuery({
-    queryKey: ["tags", currentPage],
-    queryFn: () => readTags(currentPage * pageSize, pageSize),
+    queryKey: ["tags"],
+    queryFn: readTags,
   })
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [tagName, setTagName] = useState("")
 
   const createMutation = useMutation({
-    mutationFn: () => createTag(tagName.trim()),
+    mutationFn: () => createTag(name.trim()),
     onSuccess: () => {
       showSuccessToast("Tag created successfully")
-      setIsCreateOpen(false)
-      setTagName("")
+      setIsOpen(false)
+      setName("")
       queryClient.invalidateQueries({ queryKey: ["tags"] })
     },
-    onError: (error) => {
-      showErrorToast(error.message || "Failed to create tag")
-    },
+    onError: (e: Error) => showErrorToast(e.message || "Failed to create tag"),
   })
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tags</h1>
-          <p className="text-muted-foreground">
-            Display and create tags from backend model.
-          </p>
+          <p className="text-muted-foreground">Manage tags used to categorize items</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button>Create Tag</Button>
+            <Button>
+              <Tag className="size-4 mr-2" />
+              Add Tag
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Tag</DialogTitle>
-              <DialogDescription>Create a new tag name.</DialogDescription>
+              <DialogTitle>Add Tag</DialogTitle>
+              <DialogDescription>Create a new tag to categorize items.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-2 py-2">
-              <Label htmlFor="tag-name">Tag Name</Label>
+            <div className="grid gap-3 py-2">
+              <Label htmlFor="tag-name">Name</Label>
               <Input
                 id="tag-name"
-                value={tagName}
-                onChange={(e) => setTagName(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. skincare"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && name.trim()) createMutation.mutate()
+                }}
               />
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-                disabled={createMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
+              <DialogClose asChild>
+                <Button variant="outline" disabled={createMutation.isPending}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <LoadingButton
+                loading={createMutation.isPending}
+                disabled={!name.trim()}
                 onClick={() => createMutation.mutate()}
-                disabled={!tagName.trim() || createMutation.isPending}
               >
-                {createMutation.isPending ? "Creating..." : "Create"}
-              </Button>
+                Create
+              </LoadingButton>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -313,16 +208,16 @@ function Tags() {
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading...</p>
+      ) : tags.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center py-12">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Tag className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold">No tags yet</h3>
+          <p className="text-muted-foreground">Add a tag to get started</p>
+        </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={tags}
-          showPagination
-          totalCount={Math.max(tags.length, (currentPage + 1) * pageSize)}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          onPageChange={setCurrentPage}
-        />
+        <DataTable columns={columns} data={tags} />
       )}
     </div>
   )

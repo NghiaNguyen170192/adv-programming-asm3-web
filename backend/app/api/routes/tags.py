@@ -1,137 +1,48 @@
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from sqlmodel import select
+from sqlmodel import func, select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Item, ItemTag, Tag, TagCreate, TagPublic, TagBase
+from app.models import Tag, TagCreate, TagPublic, Message
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
 @router.get("/", response_model=list[TagPublic])
-def get_all_tags(session: SessionDep) -> list[TagPublic]:
-    """Get all available tags."""
-    tags = session.exec(select(Tag)).all()
+def read_tags(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+    statement = select(Tag).offset(skip).limit(limit)
+    tags = session.exec(statement).all()
     return tags
 
 
+@router.get("/{id}", response_model=TagPublic)
+def read_tag(session: SessionDep, id: uuid.UUID) -> Any:
+    tag = session.get(Tag, id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return tag
+
+
 @router.post("/", response_model=TagPublic)
-def create_tag(
-    tag_in: TagCreate,
-    session: SessionDep,
-    current_user: CurrentUser,
-) -> TagPublic:
-    """Create a new tag. Superuser only."""
+def create_tag(*, session: SessionDep, current_user: CurrentUser, tag_in: TagCreate) -> Any:
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    existing = session.exec(select(Tag).where(Tag.name == tag_in.name)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Tag already exists")
-
-    tag = Tag(name=tag_in.name)
+    tag = Tag.model_validate(tag_in)
     session.add(tag)
     session.commit()
     session.refresh(tag)
     return tag
 
 
-@router.post("/item/{item_id}/{tag_id}")
-def add_tag_to_item(
-    item_id: uuid.UUID,
-    tag_id: uuid.UUID,
-    session: SessionDep,
-    current_user: CurrentUser,
-) -> dict:
-    """Add a tag to an item."""
-    item = session.get(Item, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    tag = session.get(Tag, tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-
-    existing = session.exec(
-        select(ItemTag).where(ItemTag.item_id == item_id, ItemTag.tag_id == tag_id)
-    ).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Tag already added to this item")
-
-    item_tag = ItemTag(item_id=item_id, tag_id=tag_id)
-    session.add(item_tag)
-    session.commit()
-    return {"message": "Tag added to item successfully"}
-
-
-@router.delete("/item/{item_id}/{tag_id}")
-def remove_tag_from_item(
-    item_id: uuid.UUID,
-    tag_id: uuid.UUID,
-    session: SessionDep,
-    current_user: CurrentUser,
-) -> dict:
-    """Remove a tag from an item."""
-    item = session.get(Item, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if item.owner_id != current_user.id and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    item_tag = session.exec(
-        select(ItemTag).where(ItemTag.item_id == item_id, ItemTag.tag_id == tag_id)
-    ).first()
-    if not item_tag:
-        raise HTTPException(status_code=404, detail="Tag not found on this item")
-
-    session.delete(item_tag)
-    session.commit()
-    return {"message": "Tag removed from item successfully"}
-
-
-@router.put("/{tag_id}", response_model=TagPublic)
-def update_tag(
-    tag_id: uuid.UUID,
-    tag_in: TagBase,
-    session: SessionDep,
-    current_user: CurrentUser,
-) -> TagPublic:
-    """Update a tag. Superuser only."""
+@router.delete("/{id}")
+def delete_tag(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Message:
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    tag = session.get(Tag, tag_id)
+    tag = session.get(Tag, id)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
-
-    existing = session.exec(select(Tag).where(Tag.name == tag_in.name, Tag.id != tag_id)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Tag name already exists")
-
-    tag.name = tag_in.name
-    session.add(tag)
-    session.commit()
-    session.refresh(tag)
-    return tag
-
-
-@router.delete("/{tag_id}")
-def delete_tag(
-    tag_id: uuid.UUID,
-    session: SessionDep,
-    current_user: CurrentUser,
-) -> dict:
-    """Delete a tag. Superuser only."""
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    tag = session.get(Tag, tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-
     session.delete(tag)
     session.commit()
-    return {"message": "Tag deleted successfully"}
+    return Message(message="Tag deleted successfully")

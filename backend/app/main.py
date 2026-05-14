@@ -31,3 +31,27 @@ if settings.all_cors_origins:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.on_event("startup")
+def startup_load_ml_models() -> None:
+    from app.ml_service import load_models
+    load_models()
+
+
+@app.on_event("startup")
+def startup_build_recommendation_index() -> None:
+    from app.recommend_service import build_index
+    build_index()
+
+
+@app.on_event("startup")
+def startup_build_skincare_index() -> None:
+    from app.skincare_rules import build_skincare_index
+    build_skincare_index()
+
+
+@app.on_event("startup")
+def startup_build_homepage_index() -> None:
+    from app.homepage_recommend import build_homepage_index
+    build_homepage_index()
