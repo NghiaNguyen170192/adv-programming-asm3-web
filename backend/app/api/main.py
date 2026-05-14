@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import items, login, predict, private, users, utils, reviews, tags
+from app.api.routes import items, login, predict, private, users, utils, reviews, tags, cart
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -10,6 +10,7 @@ api_router.include_router(utils.router)
 api_router.include_router(items.router)
 api_router.include_router(reviews.router)
 api_router.include_router(tags.router)
+api_router.include_router(cart.router)
 api_router.include_router(predict.router)
 
 

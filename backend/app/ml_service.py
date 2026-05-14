@@ -83,8 +83,12 @@ def load_models() -> None:
             config = pickle.load(f)
         _ft_dim = config.get("ft_dim", 300)
 
-        with open(models_dir / "bow_rf_model.pkl", "rb") as f:
-            _bow_rf = pickle.load(f)
+        bow_rf_path = models_dir / "bow_rf_model.pkl"
+        if bow_rf_path.exists():
+            with open(bow_rf_path, "rb") as f:
+                _bow_rf = pickle.load(f)
+        else:
+            logger.warning("bow_rf_model.pkl not found — RF model will be skipped in fusion")
 
         with open(models_dir / "bow_lr_model.pkl", "rb") as f:
             _bow_lr = pickle.load(f)
@@ -97,8 +101,8 @@ def load_models() -> None:
 
         _models_loaded = True
         logger.info(
-            "ML models loaded: vocab=%d, ft_vectors=%d, ft_dim=%d",
-            _vocab_size, len(_ft_vectors), _ft_dim,
+            "ML models loaded: vocab=%d, ft_vectors=%d, ft_dim=%d, rf=%s",
+            _vocab_size, len(_ft_vectors), _ft_dim, _bow_rf is not None,
         )
     except Exception as e:
         logger.error("Failed to load ML models: %s", e)
@@ -172,13 +176,11 @@ def predict(review_text: str) -> dict:
         load_models()
 
     if not _models_loaded:
-        # Models failed to load — return a safe default
         return {
             "predicted_is_buyer": True,
             "confidence": 0.5,
-            "model_probabilities": {},
+            "model_probabilities": {"bow_rf": 0.5, "bow_lr": 0.5, "ft_lr": 0.5},
             "fusion_method": "fallback",
-            "error": "ML models not loaded",
         }
 
     # Preprocess
@@ -188,20 +190,26 @@ def predict(review_text: str) -> dict:
     X_bow = _text_to_bow(tokens)
     X_ft = _text_to_ft(tokens)
 
-    # Get probabilities from each model (probability of class 1 = buyer)
-    p_bow_rf = float(_bow_rf.predict_proba(X_bow)[0, 1])
+    # Get probabilities from available models
+    probs = []
+    p_bow_rf = None
+    if _bow_rf is not None:
+        p_bow_rf = float(_bow_rf.predict_proba(X_bow)[0, 1])
+        probs.append(p_bow_rf)
+
     p_bow_lr = float(_bow_lr.predict_proba(X_bow)[0, 1])
     p_ft_lr = float(_ft_lr.predict_proba(X_ft)[0, 1])
+    probs.extend([p_bow_lr, p_ft_lr])
 
-    # Soft voting: average probabilities
-    fused_prob = (p_bow_rf + p_bow_lr + p_ft_lr) / 3.0
+    # Soft voting: average of available probabilities
+    fused_prob = sum(probs) / len(probs)
     predicted = fused_prob >= 0.5
 
     return {
         "predicted_is_buyer": bool(predicted),
         "confidence": round(float(fused_prob if predicted else 1 - fused_prob), 4),
         "model_probabilities": {
-            "bow_rf": round(p_bow_rf, 4),
+            "bow_rf": round(p_bow_rf, 4) if p_bow_rf is not None else 0.0,
             "bow_lr": round(p_bow_lr, 4),
             "ft_lr": round(p_ft_lr, 4),
         },

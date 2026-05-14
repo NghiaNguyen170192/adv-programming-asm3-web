@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Sparkles, Star, ShoppingCart, Users, FlaskConical, User } from "lucide-react"
 
 import { OpenAPI } from "@/client"
 import { Button } from "@/components/ui/button"
+import { useCart } from "@/contexts/CartContext"
+import useCustomToast from "@/hooks/useCustomToast"
 
 type ItemDetail = {
   id: string
@@ -104,6 +106,15 @@ async function fetchItemReviews(itemId: string): Promise<ReviewsResponse> {
   return response.json()
 }
 
+async function addToCart(itemId: string): Promise<void> {
+  const token = localStorage.getItem("access_token") || ""
+  const res = await fetch(`${OpenAPI.BASE}/api/v1/cart/${itemId}?quantity=1`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error("Failed to add to cart")
+}
+
 export const Route = createFileRoute("/_layout/item/$id" as any)({
   component: ItemDetailPage,
   head: () => ({
@@ -114,6 +125,17 @@ export const Route = createFileRoute("/_layout/item/$id" as any)({
 function ItemDetailPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
+  const { invalidateCart } = useCart()
+  const { showSuccessToast, showErrorToast } = useCustomToast()
+
+  const addToCartMutation = useMutation({
+    mutationFn: () => addToCart(id),
+    onSuccess: () => {
+      invalidateCart()
+      showSuccessToast("Added to cart")
+    },
+    onError: (e: Error) => showErrorToast(e.message),
+  })
 
   const { data: item, isLoading: isItemLoading } = useQuery({
     queryKey: ["item", id],
@@ -212,16 +234,26 @@ function ItemDetailPage() {
             )}
           </div>
 
-          {item.product_url && (
-            <a
-              href={item.product_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline"
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              onClick={() => addToCartMutation.mutate()}
+              disabled={addToCartMutation.isPending}
+              className="gap-2"
             >
-              View on store →
-            </a>
-          )}
+              <ShoppingCart className="size-4" />
+              {addToCartMutation.isPending ? "Adding..." : "Add to Cart"}
+            </Button>
+            {item.product_url && (
+              <a
+                href={item.product_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary underline"
+              >
+                View on store →
+              </a>
+            )}
+          </div>
         </div>
       </div>
 

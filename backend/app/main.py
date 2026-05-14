@@ -49,3 +49,9 @@ def startup_build_recommendation_index() -> None:
 def startup_build_skincare_index() -> None:
     from app.skincare_rules import build_skincare_index
     build_skincare_index()
+
+
+@app.on_event("startup")
+def startup_build_homepage_index() -> None:
+    from app.homepage_recommend import build_homepage_index
+    build_homepage_index()

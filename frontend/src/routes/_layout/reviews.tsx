@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import type { ColumnDef } from "@tanstack/react-table"
 import { EllipsisVertical, Pencil, Trash2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -68,10 +68,6 @@ type PredictResponse = {
 type ReviewsPublicResponse = {
   data: ReviewPublicRow[]
   count: number
-}
-
-type ReviewsSearchParams = {
-  page?: number
 }
 
 const REVIEWS_PER_PAGE = 50
@@ -406,9 +402,6 @@ const columns: ColumnDef<ReviewPublicRow>[] = [
 
 export const Route = createFileRoute("/_layout/reviews")({
   component: Reviews,
-  validateSearch: (search: Record<string, unknown>): ReviewsSearchParams => ({
-    page: typeof search.page === "number" ? search.page : 0,
-  }),
   head: () => ({
     meta: [
       {
@@ -419,11 +412,8 @@ export const Route = createFileRoute("/_layout/reviews")({
 })
 
 function Reviews() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
-  const { page = 0 } = useSearch({ from: "/_layout/reviews" })
-  const skip = page * REVIEWS_PER_PAGE
 
   const { data: itemsResponse, isLoading: isItemsLoading } = useQuery({
     queryKey: ["items-for-reviews"],
@@ -443,8 +433,8 @@ function Reviews() {
   }, [items, createItemId])
 
   const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
-    queryKey: ["reviews", skip],
-    queryFn: () => readReviews(skip, REVIEWS_PER_PAGE),
+    queryKey: ["reviews"],
+    queryFn: () => readReviews(0, REVIEWS_PER_PAGE),
   })
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -666,13 +656,6 @@ function Reviews() {
         <DataTable
           columns={columns}
           data={reviewsResponse?.data ?? []}
-          showPagination
-          totalCount={reviewsResponse?.count ?? 0}
-          currentPage={page}
-          pageSize={REVIEWS_PER_PAGE}
-          onPageChange={(newPage) =>
-            navigate({ to: ".", search: { page: newPage } })
-          }
         />
       )}
     </div>

@@ -66,7 +66,7 @@ function SearchPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Search Products</h1>
+        <h1 className="text-2xl font-light tracking-tight">Search Products</h1>
         <p className="text-muted-foreground mt-1">
           Find cosmetic and beauty products by brand name, product title, or
           description. Supports fuzzy matching for similar keyword forms.
@@ -105,7 +105,7 @@ function SearchPage() {
             <div
               key={item.id}
               onClick={() => navigate({ to: "/item/$id", params: { id: item.id } })}
-              className="cursor-pointer rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/50"
+              className="cursor-pointer rounded-none border-0 border-b bg-card p-4 transition-all hover:opacity-80"
             >
               {/* Image placeholder */}
               {item.image_url ? (
@@ -122,7 +122,7 @@ function SearchPage() {
 
               {/* Brand */}
               {item.brand && (
-                <p className="text-xs font-medium text-primary uppercase tracking-wide mb-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
                   {item.brand}
                 </p>
               )}
@@ -135,7 +135,7 @@ function SearchPage() {
                 <div className="flex items-center gap-1">
                   {item.product_rating != null && (
                     <>
-                      <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                      <Star className="size-3.5 fill-foreground text-foreground" />
                       <span className="text-xs font-medium">
                         {item.product_rating.toFixed(1)}
                       </span>

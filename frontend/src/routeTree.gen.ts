@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutTagsRouteImport } from './routes/_layout/tags'
+import { Route as LayoutCartRouteImport } from './routes/_layout/cart'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutReviewsRouteImport } from './routes/_layout/reviews'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
@@ -55,6 +56,11 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
 const LayoutTagsRoute = LayoutTagsRouteImport.update({
   id: '/tags',
   path: '/tags',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutCartRoute = LayoutCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/tags': typeof LayoutTagsRoute
   '/search': typeof LayoutSearchRoute
   '/item/$id': typeof LayoutItemIdRoute
+  '/cart': typeof LayoutCartRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/tags': typeof LayoutTagsRoute
   '/search': typeof LayoutSearchRoute
   '/item/$id': typeof LayoutItemIdRoute
+  '/cart': typeof LayoutCartRoute
   '/': typeof LayoutIndexRoute
 }
 export interface FileRoutesById {
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_layout/tags': typeof LayoutTagsRoute
   '/_layout/search': typeof LayoutSearchRoute
   '/_layout/item/$id': typeof LayoutItemIdRoute
+  '/_layout/cart': typeof LayoutCartRoute
   '/_layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/search'
     | '/item/$id'
+    | '/cart'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/tags'
     | '/search'
     | '/item/$id'
+    | '/cart'
     | '/'
   id:
     | '__root__'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_layout/tags'
     | '/_layout/search'
     | '/_layout/item/$id'
+    | '/_layout/cart'
     | '/_layout/'
   fileRoutesById: FileRoutesById
 }
@@ -279,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutItemIdRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/cart': {
+      id: '/_layout/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof LayoutCartRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
@@ -290,6 +309,7 @@ interface LayoutRouteChildren {
   LayoutTagsRoute: typeof LayoutTagsRoute
   LayoutSearchRoute: typeof LayoutSearchRoute
   LayoutItemIdRoute: typeof LayoutItemIdRoute
+  LayoutCartRoute: typeof LayoutCartRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
@@ -301,6 +321,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutTagsRoute: LayoutTagsRoute,
   LayoutSearchRoute: LayoutSearchRoute,
   LayoutItemIdRoute: LayoutItemIdRoute,
+  LayoutCartRoute: LayoutCartRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 

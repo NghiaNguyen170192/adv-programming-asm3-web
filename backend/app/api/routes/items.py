@@ -117,6 +117,75 @@ def read_items(
     return ItemsPublic(data=items_public, count=count)
 
 
+@router.get("/homepage-recommendations")
+def homepage_recommendations(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> Any:
+    """
+    Homepage recommendation feed with three sections:
+    - Chosen For You (cold/warm/hot start)
+    - New (recent items ranked for exposure)
+    - Best Offer (discounted laggards for price-sensitive users)
+    """
+    from app.homepage_recommend import get_chosen_for_you, get_new_items, get_best_offers
+    from app.models import CartItem
+
+    # Get user's cart item IDs
+    cart_items = session.exec(
+        select(CartItem).where(CartItem.user_id == current_user.id)
+    ).all()
+    cart_item_ids = [str(ci.item_id) for ci in cart_items]
+
+    user_id = str(current_user.id)
+
+    # ── Chosen For You ────────────────────────────────────────────────────
+    chosen_raw = get_chosen_for_you(user_id, cart_item_ids, limit=12)
+    chosen_resolved = []
+    strategy = chosen_raw[0]["strategy"] if chosen_raw else "cold_start"
+    for entry in chosen_raw:
+        it = session.get(Item, uuid.UUID(entry["item_id"]))
+        if it:
+            pub = _build_item_public(session, it)
+            chosen_resolved.append({
+                **pub.model_dump(),
+                "score": entry["score"],
+            })
+
+    # ── New ───────────────────────────────────────────────────────────────
+    new_raw = get_new_items(user_id, limit=8)
+    new_resolved = []
+    for entry in new_raw:
+        it = session.get(Item, uuid.UUID(entry["item_id"]))
+        if it:
+            pub = _build_item_public(session, it)
+            new_resolved.append({
+                **pub.model_dump(),
+                "review_count": entry["review_count"],
+            })
+
+    # ── Best Offer ────────────────────────────────────────────────────────
+    offers_raw = get_best_offers(user_id, limit=6)
+    offers_resolved = []
+    for entry in offers_raw:
+        it = session.get(Item, uuid.UUID(entry["item_id"]))
+        if it:
+            pub = _build_item_public(session, it)
+            offers_resolved.append({
+                **pub.model_dump(),
+                "original_price": entry["original_price"],
+                "discounted_price": entry["discounted_price"],
+                "discount_pct": entry["discount_pct"],
+            })
+
+    return {
+        "chosen_for_you": chosen_resolved,
+        "chosen_strategy": strategy,
+        "new_arrivals": new_resolved,
+        "best_offers": offers_resolved,
+    }
+
+
 @router.get("/{id}/similar", response_model=ItemsPublic)
 def get_similar_items(
     id: uuid.UUID,
