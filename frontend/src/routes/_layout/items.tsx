@@ -31,44 +31,6 @@ function authHeaders() {
     Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
     "Content-Type": "application/json",
   }
-
-  return response.json()
-}
-
-async function getReviewAggregates(itemIds: string[]) {
-  const entries = await Promise.all(
-    itemIds.map(async (itemId) => {
-      try {
-        const reviews = await readReviewsByItem(itemId)
-        const ratings = reviews.data
-          .map((review) => Number(review.rating))
-          .filter((rating) => Number.isFinite(rating))
-        const count = ratings.length
-        const average =
-          count > 0
-            ? ratings.reduce((sum, rating) => sum + rating, 0) / count
-            : null
-
-        return [
-          itemId,
-          {
-            product_rating: average,
-            product_rating_count: count,
-          },
-        ] as const
-      } catch {
-        return [
-          itemId,
-          {
-            product_rating: null,
-            product_rating_count: 0,
-          },
-        ] as const
-      }
-    }),
-  )
-
-  return Object.fromEntries(entries)
 }
 
 async function addToCart(itemId: string): Promise<void> {
@@ -77,6 +39,10 @@ async function addToCart(itemId: string): Promise<void> {
     headers: authHeaders(),
   })
   if (!res.ok) throw new Error("Failed to add to cart")
+}
+
+type ItemsSearchParams = {
+  page: number
 }
 
 export const Route = createFileRoute("/_layout/items")({
