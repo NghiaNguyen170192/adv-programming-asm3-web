@@ -33,12 +33,21 @@ import { handleError } from "@/utils"
 const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  image_url: z.string().url({ message: "Must be a valid URL" }).optional(),
+  brand: z.string().optional(),
+  price: z.number().nonnegative().optional(),
+  mrp: z.number().nonnegative().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
 
 interface EditItemProps {
-  item: ItemPublic
+  item: ItemPublic & {
+    image_url?: string | null
+    brand?: string | null
+    price?: number | null
+    mrp?: number | null
+  }
   onSuccess: () => void
 }
 
@@ -54,6 +63,10 @@ const EditItem = ({ item, onSuccess }: EditItemProps) => {
     defaultValues: {
       title: item.title,
       description: item.description ?? undefined,
+      image_url: item.image_url ?? undefined,
+      brand: item.brand ?? undefined,
+      price: item.price ?? undefined,
+      mrp: item.mrp ?? undefined,
     },
   })
 
@@ -118,6 +131,62 @@ const EditItem = ({ item, onSuccess }: EditItemProps) => {
                     <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Input placeholder="Description" type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="image_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image URL</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/image.jpg" type="url" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Brand" type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0.00" type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mrp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>MRP</FormLabel>
+                    <FormControl>
+                      <Input placeholder="0.00" type="number" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,10 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Package, Plus, Search, Star } from "lucide-react"
+import { MoreVertical, Package, Plus, Search, Star } from "lucide-react"
 
 import { ItemsService, OpenAPI } from "@/client"
 import AddItem from "@/components/Items/AddItem"
+import EditItem from "@/components/Items/EditItem"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import useCustomToast from "@/hooks/useCustomToast"
 
 type ItemData = {
@@ -17,6 +23,7 @@ type ItemData = {
   product_rating?: number | null
   product_rating_count?: number | null
   description?: string | null
+  owner_id: string
 }
 
 function authHeaders() {
@@ -48,7 +55,7 @@ function Items() {
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["items"],
-    queryFn: () => ItemsService.readItems({ skip: 0, limit: 100 }),
+    queryFn: () => ItemsService.readItems({ skip: 0, limit: 300 }),
   })
 
   const cartMutation = useMutation({
@@ -95,17 +102,33 @@ function Items() {
               key={item.id}
               className="group rounded-none border-0 border-b bg-card transition-all hover:opacity-80 flex flex-col"
             >
-              <div
-                className="cursor-pointer p-3 flex-1"
-                onClick={() => navigate({ to: "/item/$id", params: { id: item.id } } as any)}
-              >
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} className="w-full h-36 object-cover mb-3" />
-                ) : (
-                  <div className="w-full h-36 bg-muted mb-3 flex items-center justify-center">
-                    <Package className="size-8 text-muted-foreground/40" />
-                  </div>
-                )}
+              <div className="p-3 flex-1">
+                <div className="flex justify-end mb-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <EditItem
+                        item={item}
+                        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["items"] })}
+                      />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div
+                  className="cursor-pointer"
+                  onClick={() => navigate({ to: "/item/$id", params: { id: item.id } } as any)}
+                >
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.title} className="w-full h-36 object-cover mb-3" />
+                  ) : (
+                    <div className="w-full h-36 bg-muted mb-3 flex items-center justify-center">
+                      <Package className="size-8 text-muted-foreground/40" />
+                    </div>
+                  )}
                 {item.brand && (
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">{item.brand}</p>
                 )}
@@ -129,7 +152,8 @@ function Items() {
                     </span>
                   </div>
                 )}
-              </div>
+                </div>
+                </div>
               <div className="px-3 pb-3">
                 <Button
                   size="sm"
