@@ -20,3 +20,6 @@ alembic upgrade head
 
 # Create initial data in DB
 python app/initial_data.py
+
+# Seed product data from CSV (idempotent – skips if items exist)
+python app/seed_data.py
