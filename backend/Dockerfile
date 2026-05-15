@@ -33,6 +33,9 @@ COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
 
 COPY ./backend/app /app/backend/app
 
+# Copy dataset for seeding (optional – skipped gracefully if missing)
+COPY ./dataset.csv /app/dataset.csv
+
 # Sync the project
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
