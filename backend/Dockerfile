@@ -35,6 +35,7 @@ COPY ./backend/app /app/backend/app
 
 # Copy dataset for seeding (optional – skipped gracefully if missing)
 COPY ./dataset.csv /app/dataset.csv
+COPY ./image_urls.csv /app/image_urls.csv
 
 # Sync the project
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers

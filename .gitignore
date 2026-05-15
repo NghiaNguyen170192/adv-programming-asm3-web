@@ -6,3 +6,4 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 backend/app/ml_models/bow_rf_model.pkl
+app_backup.dump

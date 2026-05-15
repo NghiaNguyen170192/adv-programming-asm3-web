@@ -7,6 +7,7 @@ so every developer gets data on first `docker compose up`.
 
 import csv
 import logging
+import random
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,10 @@ _HERE = Path(__file__).resolve()
 CSV_PATH = _HERE.parents[2] / "dataset.csv"
 if not CSV_PATH.exists():
     CSV_PATH = _HERE.parents[3] / "dataset.csv"
+
+IMAGE_CSV_PATH = _HERE.parents[2] / "image_urls.csv"
+if not IMAGE_CSV_PATH.exists():
+    IMAGE_CSV_PATH = _HERE.parents[3] / "image_urls.csv"
 
 
 def _parse_float(val: str) -> float | None:
@@ -77,6 +82,17 @@ def seed(session: Session) -> None:
         return
 
     logger.info("Seeding database from %s …", CSV_PATH)
+
+    # --- Load image URLs mapping ------------------------------------------
+    image_map: dict[int, str] = {}
+    if IMAGE_CSV_PATH.exists():
+        with open(IMAGE_CSV_PATH, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                pid = _parse_int(row.get("product_id", ""))
+                url = (row.get("image_url") or "").strip()
+                if pid is not None and url:
+                    image_map[pid] = url
+        logger.info("Loaded %d image URLs.", len(image_map))
 
     # --- Pass 1: collect unique products and tags -------------------------
     products: dict[int, dict] = {}  # product_id -> product info
@@ -152,6 +168,7 @@ def seed(session: Session) -> None:
             product_rating=info["product_rating"],
             product_rating_count=info["product_rating_count"],
             product_url=info["product_url"],
+            image_url=image_map.get(pid) or (random.choice(list(image_map.values())) if image_map else None),
             owner_id=owner.id,
         )
         session.add(item)
