@@ -1,8 +1,106 @@
-# Full Stack FastAPI Template
+# Xephora - Advanced Programming Assignment 3
 
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Docker+Compose%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Docker%20Compose/badge.svg" alt="Test Docker Compose"></a>
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3A%22Test+Backend%22" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test%20Backend/badge.svg" alt="Test Backend"></a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/full-stack-fastapi-template" target="_blank"><img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/full-stack-fastapi-template.svg" alt="Coverage"></a>
+## Group Members
+
+| Name | Student ID |
+|------|------------|
+| Vo Ngoc Dung | s4124370 |
+| Tang Hoang Ha | s4147768 |
+| Nguyen Anh Duc | s4136756 |
+| Nguyen Quoc Trong Nghia | s3343711 |
+
+---
+
+## Prerequisites
+
+- **Python** 3.10 or higher — [python.org/downloads](https://www.python.org/downloads/)
+- **Docker Desktop** — [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+- **uv** (Python package manager):
+  ```bash
+  pip install uv
+  ```
+
+---
+
+## Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/NghiaNguyen170192/adv-programming-asm3-web.git
+cd adv-programming-asm3-web
+```
+
+### 2. Create the `.env` file
+
+Create a file named `.env` in the root folder with the following content:
+
+```
+DOMAIN=localhost
+FRONTEND_HOST=http://localhost:5173
+ENVIRONMENT=local
+PROJECT_NAME="Full Stack FastAPI Project"
+STACK_NAME=full-stack-fastapi-project
+BACKEND_CORS_ORIGINS="http://localhost,http://localhost:5173,https://localhost,https://localhost:5173"
+SECRET_KEY=uyvMx29L8N3v0j
+FIRST_SUPERUSER=admin@example.com
+FIRST_SUPERUSER_PASSWORD=uyvMx29L8N3v0j
+SMTP_HOST=
+SMTP_USER=
+SMTP_PASSWORD=
+EMAILS_FROM_EMAIL=info@example.com
+SMTP_TLS=True
+SMTP_SSL=False
+SMTP_PORT=587
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=app
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=uyvMx29L8N3v0j
+SENTRY_DSN=
+CERTBOT_EMAIL=
+DOCKER_IMAGE_BACKEND=backend
+DOCKER_IMAGE_FRONTEND=frontend
+```
+
+---
+
+## Run
+
+### 1. Install dependencies
+
+```bash
+uv sync
+```
+
+### 2. Start the application
+
+```bash
+docker compose watch
+```
+
+> First run takes 5–10 minutes. Wait until you see `Done! Reviews inserted: 60407` in the terminal before opening the browser.
+
+---
+
+## Access the App
+
+Open: **http://localhost:5173**
+
+**Login credentials:**
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@example.com` |
+| Password | `uyvMx29L8N3v0j` |
+
+---
+
+## Notes
+
+- To stop: press `Ctrl+C` then run `docker compose down`
+- To restart without losing data: `docker compose up`
+- To reset everything (clears all data): `docker compose down -v`
 
 ## Technology Stack and Features
 
