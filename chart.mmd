@@ -1,0 +1,50 @@
+flowchart TB
+    subgraph internet["🌐 Internet / Browser"]
+        client(["Client"])
+    end
+
+    subgraph traefik_public["Network: traefik-public"]
+        proxy["🔀 proxy\n(Traefik)\nHTTP :80 / HTTPS :443\nDashboard :8090 (dev)"]
+    end
+
+    subgraph startup["One-shot startup services"]
+        prestart["⚙️ prestart\n① pg_trgm extension\n② alembic upgrade head\n③ initial_data.py\n(superuser)"]
+        loaddata["📦 load-data\n④ load_data.py\n← dataset.csv\n(users, items, tags,\ntaxonomy, reviews)"]
+    end
+
+    subgraph default_net["Network: default (internal)"]
+        db[("🐘 db\nPostgreSQL 18\nport 5432\nVolume: app-db-data")]
+        backend["🚀 backend\nFastAPI :8000\n/api/v1/*\nsklearn ML\nskincare rules engine"]
+        frontend["⚛️ frontend\nReact + Vite\nnginx :80\n/dashboard/*"]
+        adminer["🛠️ adminer\n:8080\nDB admin UI"]
+        mailcatcher["✉️ mailcatcher\n(dev only)\nSMTP :1025\nUI :1080"]
+    end
+
+    %% External traffic
+    client -->|"HTTPS"| proxy
+    proxy -->|"api.{domain}"| backend
+    proxy -->|"dashboard.{domain}"| frontend
+    proxy -->|"adminer.{domain}"| adminer
+
+    %% Startup dependency chain
+    db -->|"healthy"| prestart
+    prestart -->|"completed"| loaddata
+    prestart -->|"completed"| backend
+    db -->|"healthy"| loaddata
+    db -->|"healthy"| backend
+    db --> adminer
+
+    %% Runtime connections
+    backend -->|"SQL / SQLModel"| db
+    backend -->|"SMTP"| mailcatcher
+    frontend -->|"REST /api/v1"| backend
+
+    %% Styling
+    classDef oneshot fill:#f5f0e8,stroke:#c9a84c,stroke-dasharray:5 5
+    classDef db fill:#dce8f5,stroke:#4a90d9
+    classDef proxy fill:#e8f0e8,stroke:#4a9a4a
+    classDef devonly fill:#f0e8f5,stroke:#9a4a9a,stroke-dasharray:3 3
+    class prestart,loaddata oneshot
+    class db db
+    class proxy proxy
+    class mailcatcher devonly
